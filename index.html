@@ -522,6 +522,24 @@
 </footer>
 
 <script>
+// Smooth scroll function
+function scrollTo(options) {
+  window.scrollTo(options);
+}
+
+// Scroll to section by ID or offset
+function scrollToSection(idOrOffset) {
+  if(typeof idOrOffset === 'number') {
+    window.scrollTo({top: idOrOffset, behavior: 'smooth'});
+  } else {
+    const element = document.getElementById(idOrOffset);
+    if(element) {
+      element.scrollIntoView({behavior: 'smooth', block: 'start'});
+    }
+  }
+}
+
+// Intersection Observer for fade-up animations
 const obs = new IntersectionObserver((entries) => {
   entries.forEach(e => {
     if(e.isIntersecting) e.target.classList.add('visible');
@@ -529,12 +547,48 @@ const obs = new IntersectionObserver((entries) => {
 }, {threshold: 0.1});
 document.querySelectorAll('.fade-up').forEach(el => obs.observe(el));
 
+// Portfolio card hover effects
 document.querySelectorAll('.port-card').forEach(card => {
   card.addEventListener('mouseenter', function() {
     this.style.boxShadow = '0 20px 60px rgba(74,144,217,0.35)';
   });
   card.addEventListener('mouseleave', function() {
     this.style.boxShadow = '';
+  });
+});
+
+// Contact buttons functionality
+document.querySelector('.contact-btn.main').addEventListener('click', function() {
+  window.location.href = 'mailto:fares@example.com';
+});
+
+document.querySelectorAll('.contact-btn.outline')[0].addEventListener('click', function() {
+  window.open('https://wa.me/+201000000000', '_blank');
+});
+
+document.querySelectorAll('.contact-btn.outline')[1].addEventListener('click', function() {
+  window.open('https://behance.net/steelfares', '_blank');
+});
+
+// Add click handlers to portfolio cards (placeholder for now)
+document.querySelectorAll('.port-card').forEach((card, index) => {
+  card.addEventListener('click', function() {
+    // Placeholder - will be updated when you add your images/videos
+    console.log('Portfolio item ' + (index + 1) + ' clicked - waiting for your media files');
+  });
+});
+
+// Active nav link highlighting
+window.addEventListener('scroll', function() {
+  const sections = [800, 1400, 2200, 2900];
+  const labels = ['عني', 'أعمالي', 'خدماتي', 'تواصل'];
+  const current = window.scrollY + 200;
+  
+  sections.forEach((pos, idx) => {
+    if(current >= pos && current < (sections[idx + 1] || 9999)) {
+      document.querySelectorAll('.nav-links a').forEach(a => a.style.color = '');
+      document.querySelectorAll('.nav-links a')[idx].style.color = 'var(--blue)';
+    }
   });
 });
 </script>
