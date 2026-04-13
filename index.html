@@ -227,8 +227,8 @@
       متاح للعمل الآن
     </div>
     <h1>FARES<br><span>MAHMOUD</span></h1>
-    <div class="hero-role">Graphic Designer · Video Editor</div>
-    <p class="hero-desc">أصنع هويات بصرية تتحدث قبل أن تُقرأ، وأروي قصصاً بالتصميم والحركة.</p>
+    <div class="hero-role">Video Editor · Graphic Designer · Social Media Manager</div>
+    <p class="hero-desc">محرر فيديو ومصمم جرافيك مصري محترف، متخصص في إنتاج محتوى فيديو جذاب عالي الجودة لوسائل التواصل الاجتماعي والإعلانات. أجمع بين مهارات المونتاج وتصحيح الألوان ورواية القصص لتعزيز رؤية العلامة التجارية وتفاعل الجمهور.</p>
     <div class="hero-btns">
       <button class="btn-main" onclick="scrollTo({top:1400,behavior:'smooth'})">استعرض أعمالي</button>
       <button class="btn-outline" onclick="scrollTo({top:2900,behavior:'smooth'})">تحدّث معي</button>
@@ -241,6 +241,7 @@
         <div class="avatar-rings2"></div>
         <div style="position:relative">
           <div class="avatar-ring-glow"></div>
+          <img src="https://raw.githubusercontent.com/steel-fares/fares-portfolio/main/my%20portfiloio%20photo.png" alt="Fares Mahmoud" class="avatar-img" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
           <div class="avatar-placeholder">FM</div>
         </div>
       </div>
@@ -251,15 +252,15 @@
   <div class="stats-row fade-up">
     <div class="stat-card">
       <div class="stat-num">+80</div>
-      <div class="stat-lbl">مشروع منجز</div>
+      <div class="stat-lbl">مشروع منفذ</div>
     </div>
     <div class="stat-card">
       <div class="stat-num">+40</div>
       <div class="stat-lbl">عميل سعيد</div>
     </div>
     <div class="stat-card">
-      <div class="stat-num">5+</div>
-      <div class="stat-lbl">سنوات خبرة</div>
+      <div class="stat-num">1+</div>
+      <div class="stat-lbl">سنة خبرة</div>
     </div>
   </div>
 
@@ -521,6 +522,24 @@
 </footer>
 
 <script>
+// Smooth scroll function
+function scrollTo(options) {
+  window.scrollTo(options);
+}
+
+// Scroll to section by ID or offset
+function scrollToSection(idOrOffset) {
+  if(typeof idOrOffset === 'number') {
+    window.scrollTo({top: idOrOffset, behavior: 'smooth'});
+  } else {
+    const element = document.getElementById(idOrOffset);
+    if(element) {
+      element.scrollIntoView({behavior: 'smooth', block: 'start'});
+    }
+  }
+}
+
+// Intersection Observer for fade-up animations
 const obs = new IntersectionObserver((entries) => {
   entries.forEach(e => {
     if(e.isIntersecting) e.target.classList.add('visible');
@@ -528,12 +547,58 @@ const obs = new IntersectionObserver((entries) => {
 }, {threshold: 0.1});
 document.querySelectorAll('.fade-up').forEach(el => obs.observe(el));
 
+// Portfolio card hover effects
 document.querySelectorAll('.port-card').forEach(card => {
   card.addEventListener('mouseenter', function() {
     this.style.boxShadow = '0 20px 60px rgba(74,144,217,0.35)';
   });
   card.addEventListener('mouseleave', function() {
     this.style.boxShadow = '';
+  });
+});
+
+// Contact buttons functionality
+document.querySelector('.contact-btn.main').addEventListener('click', function() {
+  window.location.href = 'mailto:Faresana014@gmail.com';
+});
+
+document.querySelectorAll('.contact-btn.outline')[0].addEventListener('click', function() {
+  window.open('https://wa.me/+96892077491', '_blank');
+});
+
+document.querySelectorAll('.contact-btn.outline')[1].addEventListener('click', function() {
+  window.open('https://www.linkedin.com/in/fares-m-maaty', '_blank');
+});
+
+// Add new button for CV/Resume
+const contactLinks = document.querySelector('.contact-links');
+const cvBtn = document.createElement('button');
+cvBtn.className = 'contact-btn outline';
+cvBtn.innerHTML = '📄 السيرة الذاتية';
+cvBtn.addEventListener('click', function() {
+  window.open('document_pdf.pdf', '_blank');
+});
+contactLinks.appendChild(cvBtn);
+
+// Add click handlers to portfolio cards (placeholder for now)
+document.querySelectorAll('.port-card').forEach((card, index) => {
+  card.addEventListener('click', function() {
+    // Placeholder - will be updated when you add your images/videos
+    console.log('Portfolio item ' + (index + 1) + ' clicked - waiting for your media files');
+  });
+});
+
+// Active nav link highlighting
+window.addEventListener('scroll', function() {
+  const sections = [800, 1400, 2200, 2900];
+  const labels = ['عني', 'أعمالي', 'خدماتي', 'تواصل'];
+  const current = window.scrollY + 200;
+  
+  sections.forEach((pos, idx) => {
+    if(current >= pos && current < (sections[idx + 1] || 9999)) {
+      document.querySelectorAll('.nav-links a').forEach(a => a.style.color = '');
+      document.querySelectorAll('.nav-links a')[idx].style.color = 'var(--blue)';
+    }
   });
 });
 </script>
