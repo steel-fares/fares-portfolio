@@ -1,0 +1,58 @@
+name: Apply optimized portfolio ZIP
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/apply-portfolio-zip.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download ZIP from Google Drive
+        shell: bash
+        run: |
+          set -e
+          FILE_ID="1ojEXEkQB14lqfRYJt6AV-MBDNbjatFfq"
+          URL="https://drive.google.com/uc?export=download&id=${FILE_ID}"
+          curl -L --fail --retry 3 "$URL" -o portfolio.zip
+          file portfolio.zip
+          ls -lh portfolio.zip
+
+      - name: Extract and apply files
+        shell: bash
+        run: |
+          set -e
+          rm -rf _portfolio_zip
+          mkdir _portfolio_zip
+          unzip -o portfolio.zip -d _portfolio_zip
+          cp -f _portfolio_zip/index.html ./index.html
+          cp -f _portfolio_zip/mobile.html ./mobile.html
+          cp -f _portfolio_zip/portfolio-data.js ./portfolio-data.js
+          mkdir -p assets/optimized
+          cp -f _portfolio_zip/assets/optimized/* assets/optimized/
+          rm -rf _portfolio_zip portfolio.zip
+
+      - name: Commit changes
+        shell: bash
+        run: |
+          set -e
+          git config user.name "ChatGPT Portfolio Bot"
+          git config user.email "actions@github.com"
+          git add index.html mobile.html portfolio-data.js assets/optimized
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Apply optimized WebP portfolio assets"
+            git push
+          fi
