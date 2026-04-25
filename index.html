@@ -101,9 +101,35 @@ const works = [
 {src:"assets/work_75.jpeg", rating:7.1},
 {src:"assets/work_86.jpg", rating:7.05}
 ];
-const gallery = document.getElementById('gallery'), loadMoreBtn = document.getElementById('loadMoreBtn'); let visibleCount = 0; const step = 24;
-function renderChunk(){const next=works.slice(visibleCount,visibleCount+step);next.forEach(item=>{const article=document.createElement('article');article.className='work';const img=document.createElement('img');img.src=item.src;img.alt='معرض الأعمال';img.loading='eager';img.decoding='async';article.appendChild(img);article.addEventListener('click',()=>openLightbox(item.src));gallery.appendChild(article)});visibleCount+=next.length;if(visibleCount>=works.length)loadMoreBtn.style.display='none';}
-renderChunk();setTimeout(renderChunk,300);loadMoreBtn.addEventListener('click',renderChunk);
+const gallery = document.getElementById('gallery'), loadMoreBtn = document.getElementById('loadMoreBtn'); let visibleCount = 0; const step = 30;
+function renderChunk(){
+  const next = works.slice(visibleCount, visibleCount + step);
+
+  next.forEach(item => {
+    const article = document.createElement('article');
+    article.className = 'work';
+
+    const img = new Image();
+    img.src = item.src + '?v=5';
+    img.alt = 'معرض الأعمال';
+    img.decoding = 'async';
+
+    article.appendChild(img);
+    article.addEventListener('click', () => openLightbox(item.src));
+
+    gallery.appendChild(article);
+  });
+
+  visibleCount += next.length;
+
+  if (visibleCount >= works.length) {
+    loadMoreBtn.style.display = 'none';
+  }
+}
+renderChunk();
+setTimeout(renderChunk, 250);
+setTimeout(renderChunk, 700);
+loadMoreBtn.addEventListener('click', renderChunk);
 const lightbox=document.getElementById('lightbox'), lightboxImg=document.getElementById('lightboxImg');function openLightbox(src){lightboxImg.src=src;lightbox.classList.add('open');document.body.style.overflow='hidden'}function closeBox(){lightbox.classList.remove('open');lightboxImg.src='';document.body.style.overflow=''}document.getElementById('closeLightbox').addEventListener('click',closeBox);lightbox.addEventListener('click',e=>{if(e.target===lightbox)closeBox()});document.addEventListener('keydown',e=>{if(e.key==='Escape')closeBox()});
 const io=new IntersectionObserver(entries=>{entries.forEach(entry=>{if(entry.isIntersecting)entry.target.classList.add('show')})},{threshold:.12});document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
 </script></body></html>
