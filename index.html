@@ -90,6 +90,7 @@ const works = [
 {src:"assets/work_64.jpeg", rating:7.4},
 {src:"assets/work_65.jpeg", rating:7.4},
 {src:"assets/work_66.jpeg", rating:7.4},
+{src:"assets/work_67.jpeg", rating:7.35},
 {src:"assets/work_68.jpeg", rating:7.3},
 {src:"assets/work_69.jpeg", rating:7.3},
 {src:"assets/work_70.jpeg", rating:7.3},
@@ -97,7 +98,8 @@ const works = [
 {src:"assets/work_72.jpeg", rating:7.2},
 {src:"assets/work_73.jpeg", rating:7.2},
 {src:"assets/work_74.jpeg", rating:7.1},
-{src:"assets/work_75.jpeg", rating:7.1}
+{src:"assets/work_75.jpeg", rating:7.1},
+{src:"assets/work_86.jpg", rating:7.05}
 ];
 const gallery = document.getElementById('gallery'), loadMoreBtn = document.getElementById('loadMoreBtn'); let visibleCount = 0; const step = 24;
 function renderChunk(){const next=works.slice(visibleCount,visibleCount+step);next.forEach(item=>{const article=document.createElement('article');article.className='work';const img=document.createElement('img');img.src=item.src;img.alt='معرض الأعمال';img.loading='eager';img.decoding='async';article.appendChild(img);article.addEventListener('click',()=>openLightbox(item.src));gallery.appendChild(article)});visibleCount+=next.length;if(visibleCount>=works.length)loadMoreBtn.style.display='none';}
