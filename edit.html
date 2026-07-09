@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>تحرير المعرض | فارس محمود</title>
+<style>
+:root{--blue:#53a8ff;--violet:#8b68ff;--cyan:#6ee7ff;--muted:#a8b2cc;--line:rgba(255,255,255,.12)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Cairo,system-ui,sans-serif;background:linear-gradient(180deg,#070b14,#0b1120 50%,#070b14);color:#fff;padding:20px}
+.wrap{width:min(1200px,calc(100% - 40px));margin:auto}
+h1{font-size:32px;margin-bottom:24px;background:linear-gradient(135deg,var(--cyan),var(--blue),var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent}
+.section{margin:30px 0;padding:20px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.04)}
+.section h2{font-size:18px;margin-bottom:15px;color:#fff}
+label{display:block;margin:12px 0 6px;color:var(--muted);font-size:14px}
+input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.08);color:#fff;font-family:inherit;margin-bottom:12px}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue);background:rgba(83,168,255,.1)}
+button{padding:12px 24px;border:0;border-radius:8px;background:linear-gradient(135deg,var(--blue),var(--violet));color:#fff;font-weight:900;cursor:pointer;margin:6px 6px 6px 0}
+button:hover{opacity:.85}
+button.danger{background:#e74c3c}
+.work-item{padding:15px;border:1px solid var(--line);border-radius:8px;margin-bottom:10px;background:rgba(255,255,255,.04);display:flex;gap:15px;align-items:center}
+.work-thumb{width:80px;height:80px;border-radius:8px;background:#0d1425;overflow:hidden;cursor:pointer}
+.work-thumb img{width:100%;height:100%;object-fit:cover}
+.work-info{flex:1}
+.work-info p{color:var(--muted);font-size:13px;margin:4px 0}
+.work-actions{display:flex;gap:6px;flex-wrap:wrap}
+.work-actions button{margin:0;padding:8px 12px;font-size:12px}
+table{width:100%;border-collapse:collapse;margin-top:12px}
+table th{border-bottom:2px solid var(--line);padding:12px;text-align:right;font-weight:900;color:var(--cyan)}
+table td{border-bottom:1px solid var(--line);padding:12px}
+table button{margin:0;padding:6px 10px;font-size:11px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:12px}
+.stat-box{padding:15px;border-radius:8px;background:rgba(83,168,255,.1);border:1px solid rgba(83,168,255,.25);text-align:center}
+.stat-box .value{font-size:24px;font-weight:900;color:var(--cyan)}
+.stat-box .label{font-size:12px;color:var(--muted);margin-top:6px}
+.preview{margin-top:20px;padding:20px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--line)}
+.preview img{max-width:100%;max-height:300px;border-radius:8px;margin-top:10px}
+</style></head><body>
+<div class="wrap">
+<h1>⚙️ تحرير المعرض (خاص بك فقط)</h1>
+<p style="color:var(--muted);margin-bottom:20px">هذه الصفحة خاصة بتعديل البيانات والترتيب. لا تشاركها مع أحد!</p>
+
+<div class="section">
+<h2>إحصائيات سريعة</h2>
+<div class="stats" id="stats"></div>
+</div>
+
+<div class="section">
+<h2>إدارة الأقسام والعمال</h2>
+<select id="catSelect">
+<option value="all">كل الأعمال</option>
+</select>
+<button onclick="toggleEditMode()">تفعيل/إيقاف وضع التحرير</button>
+<button onclick="downloadData()">تحميل البيانات (JSON)</button>
+<button onclick="document.getElementById('uploadFile').click()">رفع بيانات (JSON)</button>
+<input type="file" id="uploadFile" style="display:none" accept=".json" onchange="uploadData(this)">
+<button onclick="resetToDefault()" class="danger">استعادة الترتيب الافتراضي</button>
+<button onclick="clearAllCustomOrders()" class="danger">مسح كل التخصيصات</button>
+<div id="workList" style="margin-top:20px"></div>
+</div>
+
+<div class="section">
+<h2>عرض مرئي للبيانات</h2>
+<table id="dataTable">
+<thead><tr><th>الصورة</th><th>الفئة</th><th>التقييم</th><th>الإجراءات</th></tr></thead>
+<tbody id="tableBody"></tbody>
+</table>
+</div>
+
+<div class="section preview" id="previewSection" style="display:none">
+<h2>معاينة الصورة</h2>
+<img id="previewImg" src="" alt="">
+</div>
+
+</div>
+
+<script src="portfolio-data.js?v=54"></script>
+<script>
+const catSelect=document.getElementById('catSelect');
+const workList=document.getElementById('workList');
+const tableBody=document.getElementById('tableBody');
+const statsBox=document.getElementById('stats');
+let editMode=false;
+
+// تحديث الأقسام
+portfolioCategories.forEach(cat=>{if(cat.id!=='all')catSelect.innerHTML+=`<option value="${cat.id}">${cat.label}</option>`});
+
+function render(){
+  const cat=catSelect.value;
+  const works=window.getPortfolioWorksForCategory?window.getPortfolioWorksForCategory(cat):
+    (cat==='all'?window.portfolioWorks:window.portfolioWorks.filter(w=>w.cat===cat));
+  
+  workList.innerHTML='';
+  works.forEach((w,idx)=>{
+    const el=document.createElement('div');
+    el.className='work-item';
+    el.innerHTML=`
+      <div class="work-thumb" onclick="preview('${w.src}')"><img src="${w.src}" alt=""></div>
+      <div class="work-info">
+        <p><b>${w.src.split('/').pop()}</b></p>
+        <p>الفئة: ${w.cat} | التقييم: ${w.rating}</p>
+      </div>
+      <div class="work-actions">
+        ${editMode?`<button onclick="moveUp('${cat}',${idx})">↑</button>
+        <button onclick="moveDown('${cat}',${idx})">↓</button>
+        <button onclick="deleteWork('${cat}','${w.src}')" class="danger">حذف</button>`:''}
+      </div>
+    `;
+    workList.appendChild(el);
+  });
+  
+  updateTable();
+  updateStats();
+}
+
+function updateStats(){
+  const stats=[
+    {label:'إجمالي الأعمال',value:window.portfolioWorks.length},
+    {label:'الفئات',value:portfolioCategories.length-1}
+  ];
+  const cats={};
+  window.portfolioWorks.forEach(w=>{cats[w.cat]=(cats[w.cat]||0)+1});
+  
+  statsBox.innerHTML=stats.map(s=>`<div class="stat-box"><div class="value">${s.value}</div><div class="label">${s.label}</div></div>`).join('');
+  Object.entries(cats).forEach(([cat,count])=>{
+    statsBox.innerHTML+=`<div class="stat-box"><div class="value">${count}</div><div class="label">${portfolioCategories.find(c=>c.id===cat)?.label||cat}</div></div>`;
+  });
+}
+
+function updateTable(){
+  const cat=catSelect.value;
+  const works=window.getPortfolioWorksForCategory?window.getPortfolioWorksForCategory(cat):
+    (cat==='all'?window.portfolioWorks:window.portfolioWorks.filter(w=>w.cat===cat));
+  
+  tableBody.innerHTML=works.map((w,idx)=>`
+    <tr>
+      <td><img src="${w.src}" alt="" style="width:40px;height:40px;border-radius:4px"></td>
+      <td>${w.cat}</td>
+      <td>${w.rating}</td>
+      <td><button onclick="preview('${w.src}')" style="margin:0;padding:4px 8px;font-size:11px">عرض</button></td>
+    </tr>
+  `).join('');
+}
+
+function preview(src){
+  document.getElementById('previewImg').src=src;
+  document.getElementById('previewSection').style.display='block';
+  document.getElementById('previewSection').scrollIntoView({behavior:'smooth'});
+}
+
+function toggleEditMode(){
+  editMode=!editMode;
+  alert(editMode?'تفعيل وضع التحرير':'إيقاف وضع التحرير');
+  render();
+}
+
+function moveUp(cat,idx){
+  if(idx===0)return;
+  const works=window.getPortfolioWorksForCategory?window.getPortfolioWorksForCategory(cat):
+    (cat==='all'?window.portfolioWorks:window.portfolioWorks.filter(w=>w.cat===cat));
+  const arr=[...works];
+  [arr[idx-1],arr[idx]]=[arr[idx],arr[idx-1]];
+  if(cat!=='all'&&window.reorderPortfolioWorks)window.reorderPortfolioWorks(cat,arr.map(w=>w.src));
+  render();
+}
+
+function moveDown(cat,idx){
+  const works=window.getPortfolioWorksForCategory?window.getPortfolioWorksForCategory(cat):
+    (cat==='all'?window.portfolioWorks:window.portfolioWorks.filter(w=>w.cat===cat));
+  if(idx>=works.length-1)return;
+  const arr=[...works];
+  [arr[idx],arr[idx+1]]=[arr[idx+1],arr[idx]];
+  if(cat!=='all'&&window.reorderPortfolioWorks)window.reorderPortfolioWorks(cat,arr.map(w=>w.src));
+  render();
+}
+
+function deleteWork(cat,src){
+  if(confirm('هل أنت متأكد من حذف هذا العمل من هذا القسم؟')){
+    if(window.removePortfolioWork)window.removePortfolioWork(cat,src);
+    render();
+  }
+}
+
+function downloadData(){
+  const data={
+    categories:window.portfolioCategories,
+    works:window.portfolioWorks,
+    customOrders:JSON.parse(localStorage.getItem('fares-portfolio-manual-orders-v1')||'{}')
+  };
+  const el=document.createElement('a');
+  el.href=`data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(data,null,2))}`;
+  el.download=`portfolio-backup-${new Date().toISOString().split('T')[0]}.json`;
+  el.click();
+}
+
+function uploadData(input){
+  if(!input.files[0])return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      if(data.customOrders)localStorage.setItem('fares-portfolio-manual-orders-v1',JSON.stringify(data.customOrders));
+      alert('تم تحميل البيانات بنجاح!');
+      location.reload();
+    }catch(err){alert('خطأ في البيانات: '+err.message)}
+  };
+  reader.readAsText(input.files[0]);
+}
+
+function resetToDefault(){
+  if(confirm('هل تريد حذف كل التعديلات الشخصية والعودة للترتيب الأصلي؟')){
+    localStorage.removeItem('fares-portfolio-manual-orders-v1');
+    alert('تم استعادة الترتيب الافتراضي');
+    location.reload();
+  }
+}
+
+function clearAllCustomOrders(){
+  if(confirm('هل أنت متأكد؟ هذا سيمسح جميع التخصيصات!')){
+    localStorage.clear();
+    alert('تم مسح كل البيانات المحفوظة');
+    location.reload();
+  }
+}
+
+catSelect.onchange=render;
+render();
+</script></body></html>

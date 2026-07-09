@@ -2,16 +2,18 @@ window.portfolioCategories=[
   {id:'all',label:'كل الأعمال'},
   {id:'restaurants',label:'مطاعم وكافيهات'},
   {id:'ac',label:'تكييف و MEP'},
-  {id:'tools',label:'معدات وأدوات'},
   {id:'products',label:'منتجات ومتاجر'},
-  {id:'cars',label:'سيارات وخدمات'},
-  {id:'translation',label:'ترجمة وخدمات'},
+  {id:'tools',label:'معدات وأدوات'},
   {id:'construction',label:'مقاولات وإنشاءات'},
-  {id:'travel',label:'سفر وخدمات'},
+  {id:'translation',label:'ترجمة وخدمات'},
   {id:'digital',label:'برامج ومنتجات رقمية'},
+  {id:'cars',label:'سيارات وخدمات'},
+  {id:'travel',label:'سفر وخدمات'},
   {id:'branding',label:'تصميمات متنوعة'}
 ];
-window.portfolioWorks=[
+
+const categoryOrder={restaurants:0,ac:1,products:2,tools:3,construction:4,translation:5,digital:6,cars:7,travel:8,branding:9};
+const rawWorks=[
   {src:'assets/optimized/work_91.webp',cat:'ac',rating:9.9},
   {src:'assets/optimized/work_94.webp',cat:'restaurants',rating:9.8},
   {src:'assets/optimized/work_96.webp',cat:'ac',rating:9.8},
@@ -107,3 +109,45 @@ window.portfolioWorks=[
   {src:'assets/optimized/work_47.webp',cat:'tools',rating:6.5},
   {src:'assets/optimized/work_59.webp',cat:'tools',rating:6.5}
 ];
+
+const seenSrcs=new Set();
+window.portfolioWorks=rawWorks.filter(work=>{
+  if(seenSrcs.has(work.src)) return false;
+  seenSrcs.add(work.src);
+  return true;
+}).sort((a,b)=>{
+  const catDiff=(categoryOrder[a.cat]??99)-(categoryOrder[b.cat]??99);
+  if(catDiff!==0)return catDiff;
+  return b.rating-a.rating;
+});
+
+const manualOrdersKey='fares-portfolio-manual-orders-v1';
+let manualOrders={};
+try{manualOrders=JSON.parse(localStorage.getItem(manualOrdersKey)||'{}');}catch(err){}
+
+function saveManualOrders(){
+  try{localStorage.setItem(manualOrdersKey,JSON.stringify(manualOrders));}catch(err){}
+}
+
+window.getPortfolioWorksForCategory=function(cat){
+  const works=cat==='all'?window.portfolioWorks:window.portfolioWorks.filter(w=>w.cat===cat);
+  const saved=manualOrders[cat];
+  if(!saved||!saved.length)return works;
+  const map=new Map(works.map(w=>[w.src,w]));
+  const ordered=saved.filter(src=>map.has(src)).map(src=>map.get(src));
+  const rest=works.filter(w=>!saved.includes(w.src));
+  return ordered.concat(rest);
+};
+
+window.reorderPortfolioWorks=function(cat,srcs){
+  if(!cat||cat==='all')return;
+  manualOrders[cat]=srcs.filter(Boolean);
+  saveManualOrders();
+};
+
+window.removePortfolioWork=function(cat,src){
+  if(!cat||cat==='all')return;
+  const next=(manualOrders[cat]||[]).filter(item=>item!==src);
+  manualOrders[cat]=next;
+  saveManualOrders();
+};
