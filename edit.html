@@ -16,27 +16,30 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue);ba
 button{padding:12px 24px;border:0;border-radius:8px;background:linear-gradient(135deg,var(--blue),var(--violet));color:#fff;font-weight:900;cursor:pointer;margin:6px 6px 6px 0}
 button:hover{opacity:.85}
 button.danger{background:#e74c3c}
-.work-item{padding:15px;border:1px solid var(--line);border-radius:8px;margin-bottom:10px;background:rgba(255,255,255,.04);display:flex;gap:15px;align-items:center}
-.work-thumb{width:80px;height:80px;border-radius:8px;background:#0d1425;overflow:hidden;cursor:pointer}
+.work-item{padding:15px;border:1px solid var(--line);border-radius:8px;margin-bottom:10px;background:rgba(255,255,255,.04);display:flex;gap:15px;align-items:center;justify-content:space-between}
+.work-thumb{width:60px;height:60px;border-radius:8px;background:#0d1425;overflow:hidden;cursor:pointer;flex-shrink:0}
 .work-thumb img{width:100%;height:100%;object-fit:cover}
-.work-info{flex:1}
-.work-info p{color:var(--muted);font-size:13px;margin:4px 0}
-.work-actions{display:flex;gap:6px;flex-wrap:wrap}
-.work-actions button{margin:0;padding:8px 12px;font-size:12px}
+.work-info{flex:1;min-width:0;padding:0 10px}
+.work-info p{color:var(--muted);font-size:12px;margin:4px 0;overflow:hidden;text-overflow:ellipsis}
+.work-actions{display:flex;gap:4px;flex-shrink:0}
+.work-actions button{margin:0;padding:6px 10px;font-size:12px}
 table{width:100%;border-collapse:collapse;margin-top:12px}
 table th{border-bottom:2px solid var(--line);padding:12px;text-align:right;font-weight:900;color:var(--cyan)}
-table td{border-bottom:1px solid var(--line);padding:12px}
-table button{margin:0;padding:6px 10px;font-size:11px}
+table td{border-bottom:1px solid var(--line);padding:12px;font-size:12px}
+table button{margin:0;padding:4px 8px;font-size:11px}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:12px}
 .stat-box{padding:15px;border-radius:8px;background:rgba(83,168,255,.1);border:1px solid rgba(83,168,255,.25);text-align:center}
 .stat-box .value{font-size:24px;font-weight:900;color:var(--cyan)}
 .stat-box .label{font-size:12px;color:var(--muted);margin-top:6px}
 .preview{margin-top:20px;padding:20px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--line)}
-.preview img{max-width:100%;max-height:300px;border-radius:8px;margin-top:10px}
+.preview img{max-width:100%;max-height:400px;border-radius:8px;margin-top:10px}
+.alert{padding:12px;border-radius:8px;margin:12px 0;background:rgba(231,76,60,.2);border:1px solid rgba(231,76,60,.5);color:#ff9999}
 </style></head><body>
 <div class="wrap">
 <h1>⚙️ تحرير المعرض (خاص بك فقط)</h1>
-<p style="color:var(--muted);margin-bottom:20px">هذه الصفحة خاصة بتعديل البيانات والترتيب. لا تشاركها مع أحد!</p>
+<p style="color:var(--muted);margin-bottom:20px">هذه الصفحة خاصة بتعديل البيانات والترتيب. استخدم الأزرار ⬆️ و ⬇️ لإعادة ترتيب الصور.</p>
+
+<div id="alertBox"></div>
 
 <div class="section">
 <h2>إحصائيات سريعة</h2>
@@ -45,24 +48,21 @@ table button{margin:0;padding:6px 10px;font-size:11px}
 
 <div class="section">
 <h2>إدارة الأقسام والعمال</h2>
-<select id="catSelect">
+<label>اختر قسم:</label>
+<select id="catSelect" style="margin-bottom:15px">
 <option value="all">كل الأعمال</option>
 </select>
-<button onclick="toggleEditMode()">تفعيل/إيقاف وضع التحرير</button>
-<button onclick="downloadData()">تحميل البيانات (JSON)</button>
-<button onclick="document.getElementById('uploadFile').click()">رفع بيانات (JSON)</button>
-<input type="file" id="uploadFile" style="display:none" accept=".json" onchange="uploadData(this)">
-<button onclick="resetToDefault()" class="danger">استعادة الترتيب الافتراضي</button>
-<button onclick="clearAllCustomOrders()" class="danger">مسح كل التخصيصات</button>
+<button id="toggleBtn" style="margin-bottom:15px">✅ وضع التحرير: مفعل</button>
+<button onclick="app.downloadData()">⬇️ تحميل البيانات</button>
+<button onclick="document.getElementById('uploadFile').click()">⬆️ رفع بيانات</button>
+<input type="file" id="uploadFile" style="display:none" accept=".json" onchange="app.uploadData(this)">
+<button onclick="app.resetToDefault()" class="danger">🔄 استعادة الافتراضي</button>
 <div id="workList" style="margin-top:20px"></div>
 </div>
 
 <div class="section">
 <h2>عرض مرئي للبيانات</h2>
-<table id="dataTable">
-<thead><tr><th>الصورة</th><th>الفئة</th><th>التقييم</th><th>الإجراءات</th></tr></thead>
-<tbody id="tableBody"></tbody>
-</table>
+<table id="dataTable"><thead><tr><th>الصورة</th><th>الملف</th><th>الفئة</th><th>التقييم</th></tr></thead><tbody id="tableBody"></tbody></table>
 </div>
 
 <div class="section preview" id="previewSection" style="display:none">
@@ -74,167 +74,217 @@ table button{margin:0;padding:6px 10px;font-size:11px}
 
 <script src="portfolio-data.js?v=54"></script>
 <script>
-const catSelect=document.getElementById('catSelect');
-const workList=document.getElementById('workList');
-const tableBody=document.getElementById('tableBody');
-const statsBox=document.getElementById('stats');
-let editMode=true;
+const app={
+  editMode:true,
+  catSelect:null,
+  workList:null,
+  tableBody:null,
+  statsBox:null,
+  alertBox:null,
+  toggleBtn:null,
 
-// تحديث الأقسام
-portfolioCategories.forEach(cat=>{if(cat.id!=='all')catSelect.innerHTML+=`<option value="${cat.id}">${cat.label}</option>`});
+  init(){
+    this.catSelect=document.getElementById('catSelect');
+    this.workList=document.getElementById('workList');
+    this.tableBody=document.getElementById('tableBody');
+    this.statsBox=document.getElementById('stats');
+    this.alertBox=document.getElementById('alertBox');
+    this.toggleBtn=document.getElementById('toggleBtn');
+    
+    if(!window.portfolioCategories){
+      this.alert('⚠️ خطأ: لم يتم تحميل البيانات');
+      console.error('portfolioCategories not loaded');
+      return;
+    }
+    
+    // تحديث الأقسام
+    window.portfolioCategories.forEach(cat=>{
+      if(cat.id!=='all')this.catSelect.innerHTML+=`<option value="${cat.id}">${cat.label}</option>`
+    });
+    
+    // ربط الأحداث
+    this.catSelect.addEventListener('change',()=>this.render());
+    this.toggleBtn.addEventListener('click',()=>this.toggleEditMode());
+    
+    this.render();
+    this.updateToggleBtn();
+  },
 
-function render(){
-  const cat=catSelect.value;
-  const works=window.getPortfolioWorksForCategory?window.getPortfolioWorksForCategory(cat):
-    (cat==='all'?window.portfolioWorks:window.portfolioWorks.filter(w=>w.cat===cat));
-  
-  workList.innerHTML='';
-  works.forEach((w,idx)=>{
+  alert(msg){
     const el=document.createElement('div');
-    el.className='work-item';
-    el.innerHTML=`
-      <div class="work-thumb" onclick="preview('${w.src}')"><img src="${w.src}" alt=""></div>
-      <div class="work-info">
-        <p><b>${w.src.split('/').pop()}</b></p>
-        <p>الفئة: ${w.cat} | التقييم: ${w.rating}</p>
-      </div>
-      <div class="work-actions">
-        ${editMode?`<button onclick="moveUp('${cat}',${idx})">↑</button>
-        <button onclick="moveDown('${cat}',${idx})">↓</button>
-        <button onclick="deleteWork('${cat}','${w.src}')" class="danger">حذف</button>`:''}
-      </div>
-    `;
-    workList.appendChild(el);
-  });
-  
-  updateTable();
-  updateStats();
-}
+    el.className='alert';
+    el.textContent=msg;
+    this.alertBox.appendChild(el);
+    setTimeout(()=>el.remove(),3000);
+  },
 
-function updateStats(){
-  const stats=[
-    {label:'إجمالي الأعمال',value:window.portfolioWorks.length},
-    {label:'الفئات',value:portfolioCategories.length-1}
-  ];
-  const cats={};
-  window.portfolioWorks.forEach(w=>{cats[w.cat]=(cats[w.cat]||0)+1});
-  
-  statsBox.innerHTML=stats.map(s=>`<div class="stat-box"><div class="value">${s.value}</div><div class="label">${s.label}</div></div>`).join('');
-  Object.entries(cats).forEach(([cat,count])=>{
-    statsBox.innerHTML+=`<div class="stat-box"><div class="value">${count}</div><div class="label">${portfolioCategories.find(c=>c.id===cat)?.label||cat}</div></div>`;
-  });
-}
+  updateToggleBtn(){
+    this.toggleBtn.textContent=this.editMode?'✅ وضع التحرير: مفعل':'❌ وضع التحرير: مطفأ';
+  },
 
-function updateTable(){
-  const cat=catSelect.value;
-  const works=window.getPortfolioWorksForCategory?window.getPortfolioWorksForCategory(cat):
-    (cat==='all'?window.portfolioWorks:window.portfolioWorks.filter(w=>w.cat===cat));
-  
-  tableBody.innerHTML=works.map((w,idx)=>`
-    <tr>
-      <td><img src="${w.src}" alt="" style="width:40px;height:40px;border-radius:4px"></td>
-      <td>${w.cat}</td>
-      <td>${w.rating}</td>
-      <td><button onclick="preview('${w.src}')" style="margin:0;padding:4px 8px;font-size:11px">عرض</button></td>
-    </tr>
-  `).join('');
-}
-
-function preview(src){
-  document.getElementById('previewImg').src=src;
-  document.getElementById('previewSection').style.display='block';
-  document.getElementById('previewSection').scrollIntoView({behavior:'smooth'});
-}
-
-function toggleEditMode(){
-  editMode=!editMode;
-  alert(editMode?'✅ وضع التحرير مفعل - يمكنك الآن استخدام الأزرار':'❌ وضع التحرير مطفأ - الأزرار مخفية');
-  render();
-}
-
-function moveUp(cat,idx){
-  if(idx===0)return;
-  const works=window.getPortfolioWorksForCategory?window.getPortfolioWorksForCategory(cat):
-    (cat==='all'?window.portfolioWorks:window.portfolioWorks.filter(w=>w.cat===cat));
-  const arr=[...works];
-  [arr[idx-1],arr[idx]]=[arr[idx],arr[idx-1]];
-  if(window.reorderPortfolioWorks){
-    if(cat==='all'){
-      const srcs=arr.map(w=>w.src);
-      localStorage.setItem('fares-portfolio-all-order-v1',JSON.stringify(srcs));
-    }else{
-      window.reorderPortfolioWorks(cat,arr.map(w=>w.src));
+  render(){
+    const cat=this.catSelect.value;
+    const works=window.getPortfolioWorksForCategory?window.getPortfolioWorksForCategory(cat):
+      (cat==='all'?window.portfolioWorks:window.portfolioWorks.filter(w=>w.cat===cat));
+    
+    this.workList.innerHTML='';
+    if(!works||works.length===0){
+      this.workList.innerHTML='<p style="color:#a8b2cc;padding:20px;text-align:center">لا توجد أعمال في هذا القسم</p>';
+      return;
     }
-  }
-  render();
-}
+    
+    works.forEach((w,idx)=>{
+      const el=document.createElement('div');
+      el.className='work-item';
+      const fileName=w.src.split('/').pop();
+      let actionButtons='';
+      if(this.editMode){
+        if(idx>0)actionButtons+=`<button onclick="app.moveUp('${cat}',${idx})">⬆️</button>`;
+        if(idx<works.length-1)actionButtons+=`<button onclick="app.moveDown('${cat}',${idx})">⬇️</button>`;
+        actionButtons+=`<button onclick="app.deleteWork('${cat}','${w.src}')" class="danger">❌</button>`;
+      }
+      el.innerHTML=`
+        <div class="work-thumb" onclick="app.preview('${w.src}')"><img src="${w.src}" alt=""></div>
+        <div class="work-info">
+          <p><b>${fileName}</b></p>
+          <p>الفئة: ${w.cat} | التقييم: ${w.rating}</p>
+        </div>
+        <div class="work-actions">${actionButtons}</div>
+      `;
+      this.workList.appendChild(el);
+    });
+    
+    this.updateTable();
+    this.updateStats();
+  },
 
-function moveDown(cat,idx){
-  const works=window.getPortfolioWorksForCategory?window.getPortfolioWorksForCategory(cat):
-    (cat==='all'?window.portfolioWorks:window.portfolioWorks.filter(w=>w.cat===cat));
-  if(idx>=works.length-1)return;
-  const arr=[...works];
-  [arr[idx],arr[idx+1]]=[arr[idx+1],arr[idx]];
-  if(window.reorderPortfolioWorks){
-    if(cat==='all'){
-      const srcs=arr.map(w=>w.src);
-      localStorage.setItem('fares-portfolio-all-order-v1',JSON.stringify(srcs));
-    }else{
-      window.reorderPortfolioWorks(cat,arr.map(w=>w.src));
+  updateStats(){
+    const stats=[
+      {label:'إجمالي الأعمال',value:window.portfolioWorks.length},
+      {label:'الفئات',value:window.portfolioCategories.length-1}
+    ];
+    const cats={};
+    window.portfolioWorks.forEach(w=>{cats[w.cat]=(cats[w.cat]||0)+1});
+    
+    this.statsBox.innerHTML=stats.map(s=>`<div class="stat-box"><div class="value">${s.value}</div><div class="label">${s.label}</div></div>`).join('');
+    Object.entries(cats).forEach(([cat,count])=>{
+      const label=window.portfolioCategories.find(c=>c.id===cat)?.label||cat;
+      this.statsBox.innerHTML+=`<div class="stat-box"><div class="value">${count}</div><div class="label">${label}</div></div>`;
+    });
+  },
+
+  updateTable(){
+    const cat=this.catSelect.value;
+    const works=window.getPortfolioWorksForCategory?window.getPortfolioWorksForCategory(cat):
+      (cat==='all'?window.portfolioWorks:window.portfolioWorks.filter(w=>w.cat===cat));
+    
+    this.tableBody.innerHTML=works.map((w,idx)=>`
+      <tr>
+        <td><img src="${w.src}" alt="" style="width:30px;height:30px;border-radius:4px"></td>
+        <td>${w.src.split('/').pop()}</td>
+        <td>${w.cat}</td>
+        <td>${w.rating}</td>
+      </tr>
+    `).join('');
+  },
+
+  preview(src){
+    document.getElementById('previewImg').src=src;
+    document.getElementById('previewSection').style.display='block';
+    document.getElementById('previewSection').scrollIntoView({behavior:'smooth'});
+  },
+
+  toggleEditMode(){
+    this.editMode=!this.editMode;
+    this.updateToggleBtn();
+    this.alert(this.editMode?'✅ وضع التحرير مفعل':'❌ وضع التحرير مطفأ');
+    this.render();
+  },
+
+  moveUp(cat,idx){
+    if(idx===0){this.alert('⚠️ هذا هو العنصر الأول');return;}
+    const works=window.getPortfolioWorksForCategory?window.getPortfolioWorksForCategory(cat):
+      (cat==='all'?window.portfolioWorks:window.portfolioWorks.filter(w=>w.cat===cat));
+    const arr=[...works];
+    [arr[idx-1],arr[idx]]=[arr[idx],arr[idx-1]];
+    this.saveOrder(cat,arr);
+    this.alert('✅ تم تحديث الترتيب');
+    this.render();
+  },
+
+  moveDown(cat,idx){
+    const works=window.getPortfolioWorksForCategory?window.getPortfolioWorksForCategory(cat):
+      (cat==='all'?window.portfolioWorks:window.portfolioWorks.filter(w=>w.cat===cat));
+    if(idx>=works.length-1){this.alert('⚠️ هذا هو العنصر الأخير');return;}
+    const arr=[...works];
+    [arr[idx],arr[idx+1]]=[arr[idx+1],arr[idx]];
+    this.saveOrder(cat,arr);
+    this.alert('✅ تم تحديث الترتيب');
+    this.render();
+  },
+
+  saveOrder(cat,arr){
+    if(window.reorderPortfolioWorks){
+      if(cat==='all'){
+        const srcs=arr.map(w=>w.src);
+        localStorage.setItem('fares-portfolio-all-order-v1',JSON.stringify(srcs));
+      }else{
+        window.reorderPortfolioWorks(cat,arr.map(w=>w.src));
+      }
     }
-  }
-  render();
-}
+  },
 
-function deleteWork(cat,src){
-  if(confirm('هل أنت متأكد من حذف هذا العمل من هذا القسم؟')){
+  deleteWork(cat,src){
+    if(!confirm('هل أنت متأكد من حذف هذا العمل؟'))return;
     if(window.removePortfolioWork)window.removePortfolioWork(cat,src);
-    render();
-  }
-}
+    this.alert('✅ تم حذف العمل');
+    this.render();
+  },
 
-function downloadData(){
-  const data={
-    categories:window.portfolioCategories,
-    works:window.portfolioWorks,
-    customOrders:JSON.parse(localStorage.getItem('fares-portfolio-manual-orders-v1')||'{}')
-  };
-  const el=document.createElement('a');
-  el.href=`data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(data,null,2))}`;
-  el.download=`portfolio-backup-${new Date().toISOString().split('T')[0]}.json`;
-  el.click();
-}
+  downloadData(){
+    const data={
+      categories:window.portfolioCategories,
+      works:window.portfolioWorks,
+      customOrders:JSON.parse(localStorage.getItem('fares-portfolio-manual-orders-v1')||'{}'),
+      allOrder:JSON.parse(localStorage.getItem('fares-portfolio-all-order-v1')||'[]')
+    };
+    const el=document.createElement('a');
+    el.href=`data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(data,null,2))}`;
+    el.download=`portfolio-backup-${new Date().toISOString().split('T')[0]}.json`;
+    el.click();
+    this.alert('✅ تم تحميل البيانات');
+  },
 
-function uploadData(input){
-  if(!input.files[0])return;
-  const reader=new FileReader();
-  reader.onload=e=>{
-    try{
-      const data=JSON.parse(e.target.result);
-      if(data.customOrders)localStorage.setItem('fares-portfolio-manual-orders-v1',JSON.stringify(data.customOrders));
-      alert('تم تحميل البيانات بنجاح!');
-      location.reload();
-    }catch(err){alert('خطأ في البيانات: '+err.message)}
-  };
-  reader.readAsText(input.files[0]);
-}
+  uploadData(input){
+    if(!input.files[0])return;
+    const reader=new FileReader();
+    reader.onload=(e)=>{
+      try{
+        const data=JSON.parse(e.target.result);
+        if(data.customOrders)localStorage.setItem('fares-portfolio-manual-orders-v1',JSON.stringify(data.customOrders));
+        if(data.allOrder)localStorage.setItem('fares-portfolio-all-order-v1',JSON.stringify(data.allOrder));
+        this.alert('✅ تم رفع البيانات بنجاح');
+        location.reload();
+      }catch(err){this.alert('❌ خطأ: '+err.message)}
+    };
+    reader.readAsText(input.files[0]);
+  },
 
-function resetToDefault(){
-  if(confirm('هل تريد حذف كل التعديلات الشخصية والعودة للترتيب الأصلي؟')){
+  resetToDefault(){
+    if(!confirm('هل تريد حذف كل التعديلات؟'))return;
     localStorage.removeItem('fares-portfolio-manual-orders-v1');
-    alert('تم استعادة الترتيب الافتراضي');
+    localStorage.removeItem('fares-portfolio-all-order-v1');
+    this.alert('✅ تم استعادة الترتيب الافتراضي');
     location.reload();
   }
-}
+};
 
-function clearAllCustomOrders(){
-  if(confirm('هل أنت متأكد؟ هذا سيمسح جميع التخصيصات!')){
-    localStorage.clear();
-    alert('تم مسح كل البيانات المحفوظة');
-    location.reload();
-  }
+// بدء التطبيق بعد تحميل الصفحة
+document.addEventListener('DOMContentLoaded',()=>app.init());
+// أو مباشرة إذا كانت الصفحة محملة بالفعل
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',()=>app.init());
+}else{
+  app.init();
 }
-
-catSelect.onchange=render;
-render();
 </script></body></html>

@@ -159,8 +159,13 @@ window.reorderPortfolioWorks=function(cat,srcs){
 };
 
 window.removePortfolioWork=function(cat,src){
-  if(!cat||cat==='all')return;
-  const next=(manualOrders[cat]||[]).filter(item=>item!==src);
-  manualOrders[cat]=next;
-  saveManualOrders();
+  if(!cat)return;
+  if(cat==='all'){
+    const idx=window.portfolioWorks.findIndex(w=>w.src===src);
+    if(idx>=0)window.portfolioWorks.splice(idx,1);
+  }else{
+    const next=(manualOrders[cat]||[]).filter(item=>item!==src);
+    manualOrders[cat]=next;
+    saveManualOrders();
+  }
 };
