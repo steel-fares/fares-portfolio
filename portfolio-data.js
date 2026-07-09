@@ -138,9 +138,12 @@ window.getPortfolioWorksForCategory=function(cat){
         const map=new Map(window.portfolioWorks.map(w=>[w.src,w]));
         const ordered=srcs.filter(src=>map.has(src)).map(src=>map.get(src));
         const rest=window.portfolioWorks.filter(w=>!srcs.includes(w.src));
-        return ordered.concat(rest);
-      }catch(e){}
+        const result=ordered.concat(rest);
+        console.log('✅ getPortfolioWorksForCategory("all") عاد',result.length,'عمل من localStorage');
+        return result;
+      }catch(e){console.error('خطأ في قراءة all order:',e)}
     }
+    console.log('⚪ getPortfolioWorksForCategory("all") عاد',window.portfolioWorks.length,'عمل من الافتراضي');
     return window.portfolioWorks;
   }
   const works=window.portfolioWorks.filter(w=>w.cat===cat);

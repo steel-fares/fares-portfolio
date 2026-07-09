@@ -127,6 +127,8 @@ const app={
     const works=window.getPortfolioWorksForCategory?window.getPortfolioWorksForCategory(cat):
       (cat==='all'?window.portfolioWorks:window.portfolioWorks.filter(w=>w.cat===cat));
     
+    console.log(`render() القسم: "${cat}" عدد الأعمال:`,works?.length||0);
+    
     this.workList.innerHTML='';
     if(!works||works.length===0){
       this.workList.innerHTML='<p style="color:#a8b2cc;padding:20px;text-align:center">لا توجد أعمال في هذا القسم</p>';
@@ -202,6 +204,7 @@ const app={
   },
 
   moveUp(cat,idx){
+    console.log('⬆️ moveUp() القسم:',cat,'الفهرس:',idx);
     if(idx===0){this.alert('⚠️ هذا هو العنصر الأول');return;}
     const works=window.getPortfolioWorksForCategory?window.getPortfolioWorksForCategory(cat):
       (cat==='all'?window.portfolioWorks:window.portfolioWorks.filter(w=>w.cat===cat));
@@ -213,6 +216,7 @@ const app={
   },
 
   moveDown(cat,idx){
+    console.log('⬇️ moveDown() القسم:',cat,'الفهرس:',idx);
     const works=window.getPortfolioWorksForCategory?window.getPortfolioWorksForCategory(cat):
       (cat==='all'?window.portfolioWorks:window.portfolioWorks.filter(w=>w.cat===cat));
     if(idx>=works.length-1){this.alert('⚠️ هذا هو العنصر الأخير');return;}
@@ -227,8 +231,11 @@ const app={
     if(window.reorderPortfolioWorks){
       if(cat==='all'){
         const srcs=arr.map(w=>w.src);
+        console.log('💾 حفظ جميع الأعمال:',srcs.length,'عمل');
         localStorage.setItem('fares-portfolio-all-order-v1',JSON.stringify(srcs));
+        console.log('✅ تم الحفظ في localStorage');
       }else{
+        console.log('💾 حفظ القسم:',cat);
         window.reorderPortfolioWorks(cat,arr.map(w=>w.src));
       }
     }
