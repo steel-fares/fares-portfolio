@@ -78,7 +78,7 @@ const catSelect=document.getElementById('catSelect');
 const workList=document.getElementById('workList');
 const tableBody=document.getElementById('tableBody');
 const statsBox=document.getElementById('stats');
-let editMode=false;
+let editMode=true;
 
 // تحديث الأقسام
 portfolioCategories.forEach(cat=>{if(cat.id!=='all')catSelect.innerHTML+=`<option value="${cat.id}">${cat.label}</option>`});
@@ -148,7 +148,7 @@ function preview(src){
 
 function toggleEditMode(){
   editMode=!editMode;
-  alert(editMode?'تفعيل وضع التحرير':'إيقاف وضع التحرير');
+  alert(editMode?'✅ وضع التحرير مفعل - يمكنك الآن استخدام الأزرار':'❌ وضع التحرير مطفأ - الأزرار مخفية');
   render();
 }
 
@@ -158,7 +158,14 @@ function moveUp(cat,idx){
     (cat==='all'?window.portfolioWorks:window.portfolioWorks.filter(w=>w.cat===cat));
   const arr=[...works];
   [arr[idx-1],arr[idx]]=[arr[idx],arr[idx-1]];
-  if(cat!=='all'&&window.reorderPortfolioWorks)window.reorderPortfolioWorks(cat,arr.map(w=>w.src));
+  if(window.reorderPortfolioWorks){
+    if(cat==='all'){
+      const srcs=arr.map(w=>w.src);
+      localStorage.setItem('fares-portfolio-all-order-v1',JSON.stringify(srcs));
+    }else{
+      window.reorderPortfolioWorks(cat,arr.map(w=>w.src));
+    }
+  }
   render();
 }
 
@@ -168,7 +175,14 @@ function moveDown(cat,idx){
   if(idx>=works.length-1)return;
   const arr=[...works];
   [arr[idx],arr[idx+1]]=[arr[idx+1],arr[idx]];
-  if(cat!=='all'&&window.reorderPortfolioWorks)window.reorderPortfolioWorks(cat,arr.map(w=>w.src));
+  if(window.reorderPortfolioWorks){
+    if(cat==='all'){
+      const srcs=arr.map(w=>w.src);
+      localStorage.setItem('fares-portfolio-all-order-v1',JSON.stringify(srcs));
+    }else{
+      window.reorderPortfolioWorks(cat,arr.map(w=>w.src));
+    }
+  }
   render();
 }
 

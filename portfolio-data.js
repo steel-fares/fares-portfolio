@@ -130,7 +130,20 @@ function saveManualOrders(){
 }
 
 window.getPortfolioWorksForCategory=function(cat){
-  const works=cat==='all'?window.portfolioWorks:window.portfolioWorks.filter(w=>w.cat===cat);
+  if(cat==='all'){
+    const saved=localStorage.getItem('fares-portfolio-all-order-v1');
+    if(saved){
+      try{
+        const srcs=JSON.parse(saved);
+        const map=new Map(window.portfolioWorks.map(w=>[w.src,w]));
+        const ordered=srcs.filter(src=>map.has(src)).map(src=>map.get(src));
+        const rest=window.portfolioWorks.filter(w=>!srcs.includes(w.src));
+        return ordered.concat(rest);
+      }catch(e){}
+    }
+    return window.portfolioWorks;
+  }
+  const works=window.portfolioWorks.filter(w=>w.cat===cat);
   const saved=manualOrders[cat];
   if(!saved||!saved.length)return works;
   const map=new Map(works.map(w=>[w.src,w]));
