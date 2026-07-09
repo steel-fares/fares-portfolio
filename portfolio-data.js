@@ -111,22 +111,29 @@ const rawWorks=[
 ];
 
 const seenSrcs=new Set();
-window.portfolioWorks=rawWorks.filter(work=>{
+const initialWorks=rawWorks.filter(work=>{
   if(seenSrcs.has(work.src)) return false;
   seenSrcs.add(work.src);
   return true;
-}).sort((a,b)=>{
-  const catDiff=(categoryOrder[a.cat]??99)-(categoryOrder[b.cat]??99);
-  if(catDiff!==0)return catDiff;
-  return b.rating-a.rating;
 });
 
 const manualOrdersKey='fares-portfolio-manual-orders-v1';
 const deletedWorksKey='fares-portfolio-deleted-works-v1';
+const addedWorksKey='fares-portfolio-added-works-v1';
+
 let manualOrders={};
 let deletedWorks=new Set();
+let addedWorks=[];
+
 try{manualOrders=JSON.parse(localStorage.getItem(manualOrdersKey)||'{}');}catch(err){}
 try{deletedWorks=new Set(JSON.parse(localStorage.getItem(deletedWorksKey)||'[]'));}catch(err){}
+try{addedWorks=JSON.parse(localStorage.getItem(addedWorksKey)||'[]');}catch(err){}
+
+window.portfolioWorks=[...initialWorks,...addedWorks].sort((a,b)=>{
+  const catDiff=(categoryOrder[a.cat]??99)-(categoryOrder[b.cat]??99);
+  if(catDiff!==0)return catDiff;
+  return b.rating-a.rating;
+});
 
 function saveManualOrders(){
   try{localStorage.setItem(manualOrdersKey,JSON.stringify(manualOrders));}catch(err){}
@@ -134,6 +141,10 @@ function saveManualOrders(){
 
 function saveDeletedWorks(){
   try{localStorage.setItem(deletedWorksKey,JSON.stringify(Array.from(deletedWorks)));}catch(err){}
+}
+
+function saveAddedWorks(){
+  try{localStorage.setItem(addedWorksKey,JSON.stringify(addedWorks));}catch(err){}
 }
 
 window.getPortfolioWorksForCategory=function(cat){
@@ -173,6 +184,10 @@ window.removePortfolioWork=function(cat,src){
   if(!cat)return;
   deletedWorks.add(src);
   saveDeletedWorks();
+  
+  addedWorks=addedWorks.filter(w=>w.src!==src);
+  saveAddedWorks();
+
   console.log('🗑️ حذف العمل:',src,'من القسم:',cat);
   if(cat!=='all'){
     const next=(manualOrders[cat]||[]).filter(item=>item!==src);
@@ -184,6 +199,8 @@ window.removePortfolioWork=function(cat,src){
 window.addPortfolioWork=function(src,cat,rating){
   const work={src,cat,rating:parseFloat(rating)||5};
   window.portfolioWorks.push(work);
+  addedWorks.push(work);
+  saveAddedWorks();
   deletedWorks.delete(src);
   saveDeletedWorks();
   console.log('➕ إضافة عمل جديد:',src,'في القسم:',cat);

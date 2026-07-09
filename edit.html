@@ -255,7 +255,9 @@ const app={
       categories:window.portfolioCategories,
       works:window.portfolioWorks,
       customOrders:JSON.parse(localStorage.getItem('fares-portfolio-manual-orders-v1')||'{}'),
-      allOrder:JSON.parse(localStorage.getItem('fares-portfolio-all-order-v1')||'[]')
+      allOrder:JSON.parse(localStorage.getItem('fares-portfolio-all-order-v1')||'[]'),
+      deletedWorks:JSON.parse(localStorage.getItem('fares-portfolio-deleted-works-v1')||'[]'),
+      addedWorks:JSON.parse(localStorage.getItem('fares-portfolio-added-works-v1')||'[]')
     };
     const el=document.createElement('a');
     el.href=`data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(data,null,2))}`;
@@ -272,6 +274,8 @@ const app={
         const data=JSON.parse(e.target.result);
         if(data.customOrders)localStorage.setItem('fares-portfolio-manual-orders-v1',JSON.stringify(data.customOrders));
         if(data.allOrder)localStorage.setItem('fares-portfolio-all-order-v1',JSON.stringify(data.allOrder));
+        if(data.deletedWorks)localStorage.setItem('fares-portfolio-deleted-works-v1',JSON.stringify(data.deletedWorks));
+        if(data.addedWorks)localStorage.setItem('fares-portfolio-added-works-v1',JSON.stringify(data.addedWorks));
         this.alert('✅ تم رفع البيانات بنجاح');
         location.reload();
       }catch(err){this.alert('❌ خطأ: '+err.message)}
@@ -316,14 +320,13 @@ const app={
     localStorage.removeItem('fares-portfolio-manual-orders-v1');
     localStorage.removeItem('fares-portfolio-all-order-v1');
     localStorage.removeItem('fares-portfolio-deleted-works-v1');
+    localStorage.removeItem('fares-portfolio-added-works-v1');
     this.alert('✅ تم استعادة الترتيب الافتراضي');
     location.reload();
   }
 };
 
-// بدء التطبيق بعد تحميل الصفحة
-document.addEventListener('DOMContentLoaded',()=>app.init());
-// أو مباشرة إذا كانت الصفحة محملة بالفعل
+// بدء التطبيق بعد تحميل الصفحة أو مباشرة إذا كانت محملة بالفعل
 if(document.readyState==='loading'){
   document.addEventListener('DOMContentLoaded',()=>app.init());
 }else{
