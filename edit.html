@@ -84,6 +84,7 @@ const app={
   statsBox:null,
   alertBox:null,
   toggleBtn:null,
+  tempUrls:{},
 
   init(){
     this.catSelect=document.getElementById('catSelect');
@@ -148,7 +149,7 @@ const app={
         actionButtons+=`<button onclick="app.deleteWork('${cat}','${w.src}')" class="danger">❌</button>`;
       }
       el.innerHTML=`
-        <div class="work-thumb" onclick="app.preview('${w.src}')"><img src="${w.src}" alt=""></div>
+        <div class="work-thumb" onclick="app.preview('${w.src}')"><img src="${this.tempUrls[w.src] || w.src}" alt=""></div>
         <div class="work-info">
           <p><b>${fileName}</b></p>
           <p>الفئة: ${w.cat} | التقييم: ${w.rating}</p>
@@ -184,7 +185,7 @@ const app={
     
     this.tableBody.innerHTML=works.map((w,idx)=>`
       <tr>
-        <td><img src="${w.src}" alt="" style="width:30px;height:30px;border-radius:4px"></td>
+        <td><img src="${this.tempUrls[w.src] || w.src}" alt="" style="width:30px;height:30px;border-radius:4px"></td>
         <td>${w.src.split('/').pop()}</td>
         <td>${w.cat}</td>
         <td>${w.rating}</td>
@@ -193,7 +194,7 @@ const app={
   },
 
   preview(src){
-    document.getElementById('previewImg').src=src;
+    document.getElementById('previewImg').src=this.tempUrls[src] || src;
     document.getElementById('previewSection').style.display='block';
     document.getElementById('previewSection').scrollIntoView({behavior:'smooth'});
   },
@@ -205,7 +206,7 @@ const app={
     this.render();
   },
 
-  moveUp(cat,idx){
+  async moveUp(cat,idx){
     console.log('⬆️ moveUp() القسم:',cat,'الفهرس:',idx);
     if(idx===0){this.alert('⚠️ هذا هو العنصر الأول');return;}
     const works=window.getPortfolioWorksForCategory?window.getPortfolioWorksForCategory(cat):
@@ -213,11 +214,11 @@ const app={
     const arr=[...works];
     [arr[idx-1],arr[idx]]=[arr[idx],arr[idx-1]];
     this.saveOrder(cat,arr);
-    this.alert('✅ تم تحديث الترتيب');
     this.render();
+    await this.saveToServer();
   },
 
-  moveDown(cat,idx){
+  async moveDown(cat,idx){
     console.log('⬇️ moveDown() القسم:',cat,'الفهرس:',idx);
     const works=window.getPortfolioWorksForCategory?window.getPortfolioWorksForCategory(cat):
       (cat==='all'?window.portfolioWorks:window.portfolioWorks.filter(w=>w.cat===cat));
@@ -225,8 +226,8 @@ const app={
     const arr=[...works];
     [arr[idx],arr[idx+1]]=[arr[idx+1],arr[idx]];
     this.saveOrder(cat,arr);
-    this.alert('✅ تم تحديث الترتيب');
     this.render();
+    await this.saveToServer();
   },
 
   saveOrder(cat,arr){
@@ -243,11 +244,11 @@ const app={
     }
   },
 
-  deleteWork(cat,src){
+  async deleteWork(cat,src){
     if(!confirm('هل أنت متأكد من حذف هذا العمل؟'))return;
     if(window.removePortfolioWork)window.removePortfolioWork(cat,src);
-    this.alert('✅ تم حذف العمل');
     this.render();
+    await this.saveToServer();
   },
 
   downloadData(){
@@ -292,27 +293,76 @@ const app={
     let added=0;
     for(let file of input.files){
       try{
-        this.alert('⏳ تحويل الصورة: '+file.name);
+        this.alert('⏳ تحويل ورفع الصورة: '+file.name);
         const webpBlob=await window.convertImageToWebP(file);
-        const url=URL.createObjectURL(webpBlob);
         
         const baseName=file.name.replace(/\.[^/.]+$/,'');
-        const src=`assets/optimized/${baseName}.webp`;
+        const fileName=`${baseName}.webp`;
+        const src=`assets/optimized/${fileName}`;
+        
+        // Upload WebP binary directly to python server
+        const uploadResponse = await fetch(`/api/upload?filename=${encodeURIComponent(fileName)}`, {
+          method: 'POST',
+          body: webpBlob
+        });
+        
+        if (!uploadResponse.ok) {
+          throw new Error('فشل رفع الصورة إلى الخادم');
+        }
+        
+        this.tempUrls[src]=URL.createObjectURL(webpBlob);
         
         window.addPortfolioWork(src,cat,rating);
         added++;
-        this.alert('✅ تمت إضافة: '+baseName);
+        this.alert('✅ تمت إضافة ورفع: '+baseName);
       }catch(err){
-        this.alert('❌ خطأ: '+err);
+        this.alert('❌ خطأ: '+err.message);
       }
     }
     
     if(added>0){
       this.alert(`✅ تمت إضافة ${added} صور بنجاح`);
       this.render();
+      await this.saveToServer();
     }
     
     input.value='';
+  },
+
+  async saveToServer(){
+    try {
+      // Get final ordered works list across all categories in order
+      let finalWorks = [];
+      const categories = window.portfolioCategories.filter(c => c.id !== 'all');
+      categories.forEach(cat => {
+        const catWorks = window.getPortfolioWorksForCategory(cat.id);
+        finalWorks = finalWorks.concat(catWorks);
+      });
+      
+      const response = await fetch('/api/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(finalWorks)
+      });
+      
+      if(response.ok){
+        // Clear localStorage since it is now baked into the file
+        localStorage.removeItem('fares-portfolio-manual-orders-v1');
+        localStorage.removeItem('fares-portfolio-all-order-v1');
+        localStorage.removeItem('fares-portfolio-deleted-works-v1');
+        localStorage.removeItem('fares-portfolio-added-works-v1');
+        
+        this.alert('💾 تم الحفظ والتحديث على الخادم تلقائياً');
+        
+        // Delay slightly and reload to fetch fresh portfolio-data.js without localstorage overrides
+        setTimeout(() => location.reload(), 1000);
+      } else {
+        this.alert('❌ فشل الحفظ على الخادم');
+      }
+    } catch(err) {
+      console.error(err);
+      this.alert('❌ خطأ أثناء الاتصال بالخادم للحفظ');
+    }
   },
 
   resetToDefault(){
