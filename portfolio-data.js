@@ -122,11 +122,18 @@ window.portfolioWorks=rawWorks.filter(work=>{
 });
 
 const manualOrdersKey='fares-portfolio-manual-orders-v1';
+const deletedWorksKey='fares-portfolio-deleted-works-v1';
 let manualOrders={};
+let deletedWorks=new Set();
 try{manualOrders=JSON.parse(localStorage.getItem(manualOrdersKey)||'{}');}catch(err){}
+try{deletedWorks=new Set(JSON.parse(localStorage.getItem(deletedWorksKey)||'[]'));}catch(err){}
 
 function saveManualOrders(){
   try{localStorage.setItem(manualOrdersKey,JSON.stringify(manualOrders));}catch(err){}
+}
+
+function saveDeletedWorks(){
+  try{localStorage.setItem(deletedWorksKey,JSON.stringify(Array.from(deletedWorks)));}catch(err){}
 }
 
 window.getPortfolioWorksForCategory=function(cat){
@@ -136,17 +143,18 @@ window.getPortfolioWorksForCategory=function(cat){
       try{
         const srcs=JSON.parse(saved);
         const map=new Map(window.portfolioWorks.map(w=>[w.src,w]));
-        const ordered=srcs.filter(src=>map.has(src)).map(src=>map.get(src));
-        const rest=window.portfolioWorks.filter(w=>!srcs.includes(w.src));
+        const ordered=srcs.filter(src=>map.has(src)&&!deletedWorks.has(src)).map(src=>map.get(src));
+        const rest=window.portfolioWorks.filter(w=>!srcs.includes(w.src)&&!deletedWorks.has(w.src));
         const result=ordered.concat(rest);
         console.log('✅ getPortfolioWorksForCategory("all") عاد',result.length,'عمل من localStorage');
         return result;
       }catch(e){console.error('خطأ في قراءة all order:',e)}
     }
-    console.log('⚪ getPortfolioWorksForCategory("all") عاد',window.portfolioWorks.length,'عمل من الافتراضي');
-    return window.portfolioWorks;
+    const result=window.portfolioWorks.filter(w=>!deletedWorks.has(w.src));
+    console.log('⚪ getPortfolioWorksForCategory("all") عاد',result.length,'عمل من الافتراضي');
+    return result;
   }
-  const works=window.portfolioWorks.filter(w=>w.cat===cat);
+  const works=window.portfolioWorks.filter(w=>w.cat===cat&&!deletedWorks.has(w.src));
   const saved=manualOrders[cat];
   if(!saved||!saved.length)return works;
   const map=new Map(works.map(w=>[w.src,w]));
@@ -163,12 +171,45 @@ window.reorderPortfolioWorks=function(cat,srcs){
 
 window.removePortfolioWork=function(cat,src){
   if(!cat)return;
-  if(cat==='all'){
-    const idx=window.portfolioWorks.findIndex(w=>w.src===src);
-    if(idx>=0)window.portfolioWorks.splice(idx,1);
-  }else{
+  deletedWorks.add(src);
+  saveDeletedWorks();
+  console.log('🗑️ حذف العمل:',src,'من القسم:',cat);
+  if(cat!=='all'){
     const next=(manualOrders[cat]||[]).filter(item=>item!==src);
     manualOrders[cat]=next;
     saveManualOrders();
   }
+};
+
+window.addPortfolioWork=function(src,cat,rating){
+  const work={src,cat,rating:parseFloat(rating)||5};
+  window.portfolioWorks.push(work);
+  deletedWorks.delete(src);
+  saveDeletedWorks();
+  console.log('➕ إضافة عمل جديد:',src,'في القسم:',cat);
+  return work;
+};
+
+window.convertImageToWebP=async function(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=(e)=>{
+      const img=new Image();
+      img.onload=()=>{
+        const canvas=document.createElement('canvas');
+        canvas.width=img.width;
+        canvas.height=img.height;
+        const ctx=canvas.getContext('2d');
+        ctx.drawImage(img,0,0);
+        canvas.toBlob((blob)=>{
+          if(!blob)return reject('فشل التحويل');
+          resolve(blob);
+        },'image/webp',0.8);
+      };
+      img.onerror=()=>reject('فشل تحميل الصورة');
+      img.src=e.target.result;
+    };
+    reader.onerror=()=>reject('فشل قراءة الملف');
+    reader.readAsDataURL(file);
+  });
 };

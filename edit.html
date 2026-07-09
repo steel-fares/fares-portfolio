@@ -56,6 +56,8 @@ table button{margin:0;padding:4px 8px;font-size:11px}
 <button onclick="app.downloadData()">⬇️ تحميل البيانات</button>
 <button onclick="document.getElementById('uploadFile').click()">⬆️ رفع بيانات</button>
 <input type="file" id="uploadFile" style="display:none" accept=".json" onchange="app.uploadData(this)">
+<button onclick="document.getElementById('imageFile').click()">➕ إضافة صور جديدة</button>
+<input type="file" id="imageFile" style="display:none" accept="image/*" multiple onchange="app.addImages(this)">
 <button onclick="app.resetToDefault()" class="danger">🔄 استعادة الافتراضي</button>
 <div id="workList" style="margin-top:20px"></div>
 </div>
@@ -277,10 +279,43 @@ const app={
     reader.readAsText(input.files[0]);
   },
 
+  async addImages(input){
+    if(!input.files||input.files.length===0)return;
+    const cat=prompt('أدخل اسم القسم باللاتيني (مثل: restaurants, products):');
+    if(!cat)return;
+    const rating=prompt('التقييم الافتراضي (1-10):','5');
+    
+    let added=0;
+    for(let file of input.files){
+      try{
+        this.alert('⏳ تحويل الصورة: '+file.name);
+        const webpBlob=await window.convertImageToWebP(file);
+        const url=URL.createObjectURL(webpBlob);
+        
+        const baseName=file.name.replace(/\.[^/.]+$/,'');
+        const src=`assets/optimized/${baseName}.webp`;
+        
+        window.addPortfolioWork(src,cat,rating);
+        added++;
+        this.alert('✅ تمت إضافة: '+baseName);
+      }catch(err){
+        this.alert('❌ خطأ: '+err);
+      }
+    }
+    
+    if(added>0){
+      this.alert(`✅ تمت إضافة ${added} صور بنجاح`);
+      this.render();
+    }
+    
+    input.value='';
+  },
+
   resetToDefault(){
     if(!confirm('هل تريد حذف كل التعديلات؟'))return;
     localStorage.removeItem('fares-portfolio-manual-orders-v1');
     localStorage.removeItem('fares-portfolio-all-order-v1');
+    localStorage.removeItem('fares-portfolio-deleted-works-v1');
     this.alert('✅ تم استعادة الترتيب الافتراضي');
     location.reload();
   }
